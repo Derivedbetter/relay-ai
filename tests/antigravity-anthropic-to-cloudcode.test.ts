@@ -19,6 +19,18 @@ describe('anthropicToCloudCode', () => {
     ]);
   });
 
+  it('presents the request as the Antigravity Google client using Google One AI credit', () => {
+    const envelope = anthropicToCloudCode({
+      messages: [{ role: 'user', content: 'hello' }],
+    }, 'gemini-3-pro', 'project-id');
+
+    expect(envelope.userAgent).toBe('vscode/1.X.X (Antigravity/4.2.0)');
+    expect(envelope.requestType).toBe('agent');
+    expect(envelope.enabledCreditTypes).toEqual(['GOOGLE_ONE_AI']);
+    expect(envelope.project).toBe('project-id');
+    expect(envelope.model).toBe('gemini-3-pro');
+  });
+
   it('floors maxOutputTokens so Gemini hidden thoughts do not consume the full budget', () => {
     const envelope = anthropicToCloudCode({
       max_tokens: 64,
