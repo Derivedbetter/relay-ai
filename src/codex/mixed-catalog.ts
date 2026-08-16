@@ -15,6 +15,23 @@ export interface ComposeMixedCodexCatalogInput {
   externalMultiAgentVersion: 'v1' | 'v2';
 }
 
+const EXTERNAL_MODEL_IDENTITY =
+  'You are the selected external model operating as a coding agent inside Codex.';
+
+function externalModelMessages(templateMessages: unknown): unknown {
+  if (!templateMessages || typeof templateMessages !== 'object' || Array.isArray(templateMessages)) {
+    return templateMessages;
+  }
+  const messages = { ...(templateMessages as Record<string, unknown>) };
+  if (typeof messages.instructions_template === 'string') {
+    messages.instructions_template = messages.instructions_template.replace(
+      /^You are Codex,[^\n]*?(?:GPT-?\d(?:\.\d+)?|OpenAI)[^\n]*?\.\s*/i,
+      `${EXTERNAL_MODEL_IDENTITY} `,
+    );
+  }
+  return messages;
+}
+
 function externalCatalogEntryFromTemplate(
   template: CodexCatalogModel,
   entry: MixedCatalogEntry,
@@ -30,7 +47,7 @@ function externalCatalogEntryFromTemplate(
     false,
     entry.slug,
   );
-  return {
+  const external: CodexCatalogModel = {
     ...template,
     ...generated,
     slug: entry.slug,
@@ -38,6 +55,14 @@ function externalCatalogEntryFromTemplate(
     visibility,
     multi_agent_version: multiAgentVersion,
   };
+  // The native catalog's model_messages contain useful Codex agent behavior,
+  // but their opening identity names the native OpenAI model. Keep the agent
+  // instructions while making that identity provider-neutral. The native
+  // comp_hash no longer describes the modified instructions and must not be
+  // advertised for an external model.
+  external.model_messages = externalModelMessages(template.model_messages);
+  delete external.comp_hash;
+  return external;
 }
 
 export function composeMixedCodexCatalog(input: ComposeMixedCodexCatalogInput): CodexCatalogFile {

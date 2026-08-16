@@ -3,6 +3,22 @@ import { anthropicToCloudCode } from '../src/antigravity/anthropic-to-cloudcode.
 import { collectCloudCodeToAnthropic } from '../src/antigravity/cloudcode-to-anthropic.js';
 
 describe('anthropicToCloudCode', () => {
+  it('preserves user and assistant perspective through the Google role mapping', () => {
+    const envelope = anthropicToCloudCode({
+      messages: [
+        { role: 'user', content: 'USER_MARKER' },
+        { role: 'assistant', content: 'ASSISTANT_REPLY' },
+        { role: 'user', content: 'USER_CORRECTION' },
+      ],
+    }, 'gemini-3-pro', 'project-id');
+
+    expect((envelope.request as any).contents).toEqual([
+      { role: 'user', parts: [{ text: 'USER_MARKER' }] },
+      { role: 'model', parts: [{ text: 'ASSISTANT_REPLY' }] },
+      { role: 'user', parts: [{ text: 'USER_CORRECTION' }] },
+    ]);
+  });
+
   it('floors maxOutputTokens so Gemini hidden thoughts do not consume the full budget', () => {
     const envelope = anthropicToCloudCode({
       max_tokens: 64,
