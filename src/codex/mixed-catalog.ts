@@ -15,18 +15,24 @@ export interface ComposeMixedCodexCatalogInput {
   externalMultiAgentVersion: 'v1' | 'v2';
 }
 
+function externalInstructionValue(value: unknown): unknown {
+  if (typeof value === 'string') {
+    return value
+      .replace(/^You are Codex,[^\n]*?\.\s*/i, '')
+      .replace(/\s+as Codex\b/gi, '');
+  }
+  if (Array.isArray(value)) return value.map(externalInstructionValue);
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).map(([key, nested]) => [
+      key,
+      externalInstructionValue(nested),
+    ]),
+  );
+}
+
 function externalModelMessages(templateMessages: unknown): unknown {
-  if (!templateMessages || typeof templateMessages !== 'object' || Array.isArray(templateMessages)) {
-    return templateMessages;
-  }
-  const messages = { ...(templateMessages as Record<string, unknown>) };
-  if (typeof messages.instructions_template === 'string') {
-    messages.instructions_template = messages.instructions_template.replace(
-      /^You are Codex,[^\n]*?(?:GPT-?\d(?:\.\d+)?|OpenAI)[^\n]*?\.\s*/i,
-      '',
-    );
-  }
-  return messages;
+  return externalInstructionValue(templateMessages);
 }
 
 function externalCatalogEntryFromTemplate(
@@ -52,11 +58,9 @@ function externalCatalogEntryFromTemplate(
     visibility,
     multi_agent_version: multiAgentVersion,
   };
-  // The native catalog's model_messages contain useful Codex agent behavior,
-  // but their opening identity names the native OpenAI model. Keep the agent
-  // instructions while making that identity provider-neutral. The native
-  // comp_hash no longer describes the modified instructions and must not be
-  // advertised for an external model.
+  // Keep generic Codex agent behavior without copying native-model identity
+  // claims into an external model. The native comp_hash no longer describes
+  // the sanitized instructions and must not be advertised for this entry.
   external.model_messages = externalModelMessages(template.model_messages);
   delete external.comp_hash;
   return external;

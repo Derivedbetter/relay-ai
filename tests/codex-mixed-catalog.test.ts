@@ -11,7 +11,11 @@ const native = {
   default_verbosity: null, apply_patch_tool_type: null, truncation_policy: { mode: 'tokens', limit: 1000 },
   supports_parallel_tool_calls: true, experimental_supported_tools: [], multi_agent_version: 'v2',
   model_messages: {
-    instructions_template: 'You are Codex, a coding agent based on GPT-5. You and the user share one workspace.',
+    instructions_template: 'You are Codex, a coding agent. You and the user share one workspace.',
+    instructions_variables: {
+      personality_friendly: 'You have a vivid inner life as Codex: curious and present.',
+      tool_guidance: 'Use the Codex app tools carefully.',
+    },
     approvals: { allow: true },
   },
   comp_hash: 'native-instruction-hash',
@@ -48,8 +52,13 @@ describe('mixed Codex catalog composition', () => {
     expect((external?.model_messages as any)?.instructions_template).toBe(
       'You and the user share one workspace.',
     );
+    expect((external?.model_messages as any)?.instructions_variables).toEqual({
+      personality_friendly: 'You have a vivid inner life: curious and present.',
+      tool_guidance: 'Use the Codex app tools carefully.',
+    });
     expect((external?.model_messages as any)?.approvals).toEqual({ allow: true });
     expect(external?.comp_hash).toBeUndefined();
+    expect(JSON.stringify(external)).not.toMatch(/You are Codex|as Codex/i);
   });
 
   it('deduplicates a sub-agent entry already visible', () => {
