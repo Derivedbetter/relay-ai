@@ -46,8 +46,7 @@ describe('mixed Codex catalog composition', () => {
 
     const external = catalog.models.find(m => m.slug === 'google__gemini');
     expect((external?.model_messages as any)?.instructions_template).toBe(
-      'You are gemini, provided through google, operating as a coding agent inside Codex. '
-      + 'Codex is the host interface, not your model identity. You and the user share one workspace.',
+      'You and the user share one workspace.',
     );
     expect((external?.model_messages as any)?.approvals).toEqual({ allow: true });
     expect(external?.comp_hash).toBeUndefined();

@@ -15,22 +15,15 @@ export interface ComposeMixedCodexCatalogInput {
   externalMultiAgentVersion: 'v1' | 'v2';
 }
 
-function externalModelMessages(
-  templateMessages: unknown,
-  modelName: string,
-  providerName: string,
-): unknown {
+function externalModelMessages(templateMessages: unknown): unknown {
   if (!templateMessages || typeof templateMessages !== 'object' || Array.isArray(templateMessages)) {
     return templateMessages;
   }
   const messages = { ...(templateMessages as Record<string, unknown>) };
   if (typeof messages.instructions_template === 'string') {
-    const identity =
-      `You are ${modelName}, provided through ${providerName}, operating as a coding agent inside Codex. `
-      + 'Codex is the host interface, not your model identity.';
     messages.instructions_template = messages.instructions_template.replace(
       /^You are Codex,[^\n]*?(?:GPT-?\d(?:\.\d+)?|OpenAI)[^\n]*?\.\s*/i,
-      `${identity} `,
+      '',
     );
   }
   return messages;
@@ -64,11 +57,7 @@ function externalCatalogEntryFromTemplate(
   // instructions while making that identity provider-neutral. The native
   // comp_hash no longer describes the modified instructions and must not be
   // advertised for an external model.
-  external.model_messages = externalModelMessages(
-    template.model_messages,
-    generated.display_name,
-    entry.resolved.providerName,
-  );
+  external.model_messages = externalModelMessages(template.model_messages);
   delete external.comp_hash;
   return external;
 }
